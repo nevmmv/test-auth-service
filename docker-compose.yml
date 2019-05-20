@@ -1,0 +1,105 @@
+version: "3"
+services:
+    composer:
+        build:
+            context: .
+            dockerfile: Dockerfile.composer
+        restart: 'no'
+        image: socialtech-composer:latest
+        environment:
+            - APP_ENV=dev
+        volumes:
+            - auth-store:/app/storage
+        networks:
+            - st.net
+    auth-cli:
+        build:
+            context: .
+            dockerfile: Dockerfile.console
+        image: auth-cli:lastest
+        depends_on:
+            - composer
+        restart: 'no'
+        environment:
+            - APP_ENV=dev
+        volumes:
+            - auth-store:/app/storage
+        networks:
+            - st.net
+    auth-web:
+        build: docker/nginx
+        depends_on:
+            - auth-backend
+        ports:
+            - 80:80
+        # uncomment lines if you need local files share
+        #    volumes:
+        #       - ./:/app/:cached
+        networks:
+            - st.net
+    auth-backend:
+        build: .
+        environment:
+            - APP_ENV=dev
+            - MESSENGER_TRANSPORT_DSN=amqp://guest:guest@rabbitmq:5672/%2f/messages
+            - STORAGE_USERS_PATH=%kernel.project_dir%/storage/users
+            - STORAGE_TRACKS_PATH=%kernel.project_dir%/storage/track
+        depends_on:
+            - composer
+            - rabbitmq
+        volumes:
+            - auth-store:/app/storage # comment this line if you need local files share
+        #       - ./:/app/:cached # uncomment this line if you need local files share
+        links:
+            - rabbitmq
+        networks:
+            - st.net
+    #    auth-worker:
+    #        build: .
+    #        environment:
+    #            - APP_ENV=dev
+    #        volumes:
+    #            - auth-store:/app/storage # comment this line if you need local files share
+    #        #       - ./:/app/:cached # uncomment this line if you need local files share
+    #        command: ['./bin/hello-worker']
+    #        networks:
+    #            - st.net
+    amqp-handler:
+        image: auth-cli:lastest
+        restart: 'always'
+        environment:
+            - APP_ENV=dev
+            - MESSENGER_TRANSPORT_DSN=amqp://guest:guest@rabbitmq:5672/%2f/messages
+            - STORAGE_USERS_PATH=%kernel.project_dir%/storage/users
+            - STORAGE_TRACKS_PATH=%kernel.project_dir%/storage/track
+        depends_on:
+            - rabbitmq
+            - auth-cli
+        volumes:
+            - auth-store:/app/storage # comment this line if you need local files share
+        #       - ./:/app/:cached # uncomment this line if you need local files share
+        links:
+            - rabbitmq
+        command: ['php','bin/console','messenger:consume-messages']
+        networks:
+            - st.net
+    rabbitmq:
+        image: rabbitmq:3.7-management-alpine
+        ports:
+            - 15673:15672
+            - 5673:5672
+        volumes:
+            - rabbitmq-data:/var/lib/rabbitmq
+        networks:
+            - st.net
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://127.0.0.1:15673"]
+            interval: 30s
+            timeout: 10s
+            retries: 5
+volumes:
+    auth-store:
+    rabbitmq-data:
+networks:
+    st.net:
+

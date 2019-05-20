@@ -1,0 +1,13 @@
+
+parameters:
+    env(MESSENGER_TRANSPORT_DSN): 'amqp://guest:guest@rabbitmq:5672/%2f/messages'
+
+framework:
+    messenger:
+        transports:
+            # Uncomment the following line to enable a transport named "amqp"
+             amqp: '%env(resolve:MESSENGER_TRANSPORT_DSN)%'
+
+        routing:
+            # Route your messages to the transports
+             'App\Track\Command\TrackActionCommand': amqp

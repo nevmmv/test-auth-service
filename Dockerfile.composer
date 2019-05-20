@@ -1,0 +1,21 @@
+FROM php:7.2-cli-alpine
+
+# trust this project public key to trust the packages.
+ADD https://dl.bintray.com/php-alpine/key/php-alpine.rsa.pub /etc/apk/keys/php-alpine.rsa.pub
+
+RUN apk update
+RUN apk add --no-cache --no-progress --virtual BUILD_DEPS ${PHPIZE_DEPS} \
+            && apk add --no-cache --no-progress --virtual BUILD_DEPS_PHP_AMQP rabbitmq-c-dev \
+            && apk add --no-cache --no-progress rabbitmq-c \
+            && pecl install amqp \
+            && docker-php-ext-enable amqp
+
+RUN curl --insecure https://getcomposer.org/composer.phar -o /usr/bin/composer && chmod +x /usr/bin/composer
+
+WORKDIR /app
+
+COPY composer.json composer.lock ./
+
+# Install dependencies with Composer.
+# --no-interaction makes sure composer can run fully automated
+RUN composer install --no-interaction --prefer-dist --no-scripts --no-dev
