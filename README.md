@@ -170,8 +170,20 @@ Response:
 }
 ```
 
-Storage 
+Storage:
 - users
 /storage/users
+```dotenv
+STORAGE_USERS_PATH=%kernel.project_dir%/storage/users
+```
+
 - track
 /storage/track
+```dotenv
+STORAGE_TRACKS_PATH=%kernel.project_dir%/storage/track
+```
+
+Message broker:
+```dotenv
+MESSENGER_TRANSPORT_DSN=amqp://guest:guest@rabbitmq:5672/%2f/messages
+```
