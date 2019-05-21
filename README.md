@@ -29,6 +29,10 @@ make up
 ```bash
 ./test
 ```
+### Run Unit-tests
+```bash
+ ./bin/phpunit
+```
 
 ### RabbitMQ management
 [http://localhost:15672/](http://localhost:15672/) **[guest:guest]**
