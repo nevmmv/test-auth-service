@@ -6,6 +6,7 @@ namespace App\EventSubscriber;
 
 use App\Entity\User;
 use App\Events;
+use App\Utils\GeneratorInterface;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
@@ -21,14 +22,20 @@ class UserSubscriber implements EventSubscriberInterface
      * @var UserPasswordEncoderInterface
      */
     private $passwordEncoder;
+    /**
+     * @var GeneratorInterface
+     */
+    private $generator;
 
     /**
      * UserSubscriber constructor.
      * @param UserPasswordEncoderInterface $passwordEncoder
+     * @param GeneratorInterface $generetor
      */
-    public function __construct(UserPasswordEncoderInterface $passwordEncoder)
+    public function __construct(UserPasswordEncoderInterface $passwordEncoder, GeneratorInterface $generator)
     {
         $this->passwordEncoder = $passwordEncoder;
+        $this->generator = $generator;
     }
 
     /**
@@ -83,7 +90,7 @@ class UserSubscriber implements EventSubscriberInterface
         }
 
         if (!$user->getId()) {
-            $user->setId(Uuid::uuid4());
+            $user->setId($this->generator->generate());
         }
     }
 }

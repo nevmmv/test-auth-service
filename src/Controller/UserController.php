@@ -6,10 +6,13 @@ use App\Entity\User;
 use App\Form\RegistrationFormType;
 use App\Repository\UserRepositoryInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 /**
  * Class UserController
@@ -19,13 +22,16 @@ class UserController extends AbstractController
 {
     /**
      * @Route("/user", name="app_user")
+     * @param TokenStorageInterface $tokenStorage
      * @return Response
      */
-    public function user(): Response
+    public function user(TokenStorageInterface $tokenStorage): Response
     {
+        $user = $this->getUserFromToken($tokenStorage);
 
-        return $this->json([
-            'user' => $this->getUser()->getId()
+
+        return new JsonResponse([
+            'user' => $user ? $user->getId() : $user
         ]);
     }
 
@@ -33,11 +39,12 @@ class UserController extends AbstractController
      * @Route("/register", name="app_register", methods={"POST"})
      * @param Request $request
      * @param UserRepositoryInterface $userRepository
+     * @param FormFactoryInterface $formFactory
      * @return Response
      */
-    public function register(Request $request, UserRepositoryInterface $userRepository): Response
+    public function register(Request $request, UserRepositoryInterface $userRepository, FormFactoryInterface $formFactory): Response
     {
-        $form = $this->createForm(RegistrationFormType::class, null, ['csrf_protection' => false]);
+        $form = $formFactory->create(RegistrationFormType::class, null, ['csrf_protection' => false]);
 
         $form->submit($request->request->all(), true);
 
@@ -45,12 +52,12 @@ class UserController extends AbstractController
             $user = User::fromUserData($form->getData());
             $userRepository->saveUser($user);
 
-            return $this->json([
+            return new JsonResponse([
                 'data' => $user->getId()
             ]);
         }
 
-        return $this->json([
+        return new JsonResponse([
             'errors' => $this->getErrorsFromForm($form)
         ]);
 
@@ -62,7 +69,7 @@ class UserController extends AbstractController
      */
     private function getErrorsFromForm(FormInterface $form)
     {
-        $errors = array();
+        $errors = [];
         foreach ($form->getErrors() as $error) {
             $errors[] = $error->getMessage();
         }
@@ -74,5 +81,19 @@ class UserController extends AbstractController
             }
         }
         return $errors;
+    }
+
+    private function getUserFromToken(TokenStorageInterface $tokenStorage)
+    {
+        if (null === $token = $tokenStorage->getToken()) {
+            return null;
+        }
+
+        if (!\is_object($user = $token->getUser())) {
+            // e.g. anonymous authentication
+            return null;
+        }
+
+        return $user;
     }
 }

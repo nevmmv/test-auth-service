@@ -28,16 +28,22 @@ class UserFileStorage implements UserStorageInterface
      * @var EventDispatcherInterface
      */
     private $eventDispatcher;
+    /**
+     * @var WriterInterface
+     */
+    private $writer;
 
     /**
      * UserFileStorage constructor.
      * @param EventDispatcherInterface $eventDispatcher
+     * @param WriterInterface $writer
      * @param string $usersStoragePath
      */
-    public function __construct(EventDispatcherInterface $eventDispatcher, string $usersStoragePath)
+    public function __construct(EventDispatcherInterface $eventDispatcher, WriterInterface $writer, string $usersStoragePath = null)
     {
         $this->eventDispatcher = $eventDispatcher;
-        $this->dir = $usersStoragePath;
+        $this->dir = $usersStoragePath ?? $this->dir;
+        $this->writer = $writer;
     }
 
     /**
@@ -47,7 +53,7 @@ class UserFileStorage implements UserStorageInterface
     {
         $event = new GenericEvent($user);
         $this->eventDispatcher->dispatch(Events::PRE_SAVE, $event);
-        file_put_contents($this->dir . '/' . $user->getId() . $this->ext, $this->encode($user), LOCK_EX);
+        $this->writer->write($this->dir . '/' . $user->getId() . $this->ext, $user);
         $this->eventDispatcher->dispatch(Events::POST_SAVE, new GenericEvent($user));
     }
 
@@ -95,15 +101,6 @@ class UserFileStorage implements UserStorageInterface
     private function decode($content)
     {
         return \json_decode($content);
-    }
-
-    /**
-     * @param $content
-     * @return false|string
-     */
-    private function encode($content)
-    {
-        return \json_encode($content);
     }
 
     /**
