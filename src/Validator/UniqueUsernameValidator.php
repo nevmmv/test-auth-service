@@ -40,7 +40,7 @@ class UniqueUsernameValidator extends ConstraintValidator
         if (null === $value) {
             return;
         }
-        /* @var $constraint \App\Validator\UniqueUsername */
+        /* @var $constraint UniqueUsername */
         if (null !== $this->userRepository->findOneByUsername($value)) {
             $this->context->buildViolation($constraint->message)
                 ->setParameter('{{ value }}', $value)

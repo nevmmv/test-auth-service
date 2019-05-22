@@ -60,7 +60,6 @@ class User implements UserInterface, \JsonSerializable
      * @param $lastname
      * @param $username
      * @param $birthday
-     * @param $password
      */
     public function __construct($id, $firstname, $lastname, $username, $birthday)
     {
@@ -257,7 +256,7 @@ class User implements UserInterface, \JsonSerializable
      * and populated in any number of different ways when the user object
      * is created.
      *
-     * @return (Role|string)[] The user roles
+     * @return array (Role|string)[] The user roles
      */
     public function getRoles()
     {

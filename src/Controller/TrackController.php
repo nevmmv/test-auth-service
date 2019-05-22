@@ -3,8 +3,10 @@
 namespace App\Controller;
 
 use App\Track\Command\TrackActionCommand;
+use App\Utils\GeneratorInterface;
 use Ramsey\Uuid\Uuid;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\Envelope;
@@ -21,32 +23,32 @@ class TrackController extends AbstractController
     /**
      * @Route("/track", name="app_track")
      * @param Request $request
+     * @param GeneratorInterface $generator
      * @param MessageBusInterface $bus
      * @return Response
-     * @throws \Exception
      */
-    public function track(Request $request, MessageBusInterface $bus): Response
+    public function track(Request $request, GeneratorInterface $generator, MessageBusInterface $bus): Response
     {
         $name = $request->request->get('name');
 
         try {
-            if (!$this->getUser() && !$request->getSession()->has('idUser')) {
-                $request->getSession()->set('idUser', Uuid::uuid4());
-            }
-            if ($this->getUser()) {
-                $idUser = $this->getUser()->getId();
-            } else {
-                $idUser = $request->getSession()->get('idUser');
-            }
+            $idUser = $this->getUserId($request, $generator);
 
             $bus->dispatch(
                 new Envelope(
-                    new TrackActionCommand((string)Uuid::uuid4(), (string)$name, (string)$idUser, new \DateTimeImmutable()),
+                    new TrackActionCommand((string)Uuid::uuid4(), (string)$name, $idUser, new \DateTimeImmutable()),
                     new SerializerStamp(['groups' => ['track']])
                 )
             );
-        }catch (\Throwable $exception){
-            $this->json([
+            return new JsonResponse([
+                'status' => 'OK',
+                'data' => [
+                    'name' => $name
+                ],
+                'code' => 200
+            ]);
+        } catch (\Throwable $exception) {
+            return new JsonResponse([
                 'status' => 'Error',
                 'data' => [
                     'name' => $name
@@ -54,14 +56,18 @@ class TrackController extends AbstractController
                 'code' => 500
             ]);
         }
+    }
 
+    private function getUserId(Request $request, GeneratorInterface $generator)
+    {
+        if (!$this->getUser() && !$request->getSession()->has('idUser')) {
 
-        return $this->json([
-            'status' => 'OK',
-            'data' => [
-                'name' => $name
-            ],
-            'code' => 200
-        ]);
+            $request->getSession()->set('idUser', $generator->generate());
+        }
+        if ($this->getUser()) {
+            return $this->getUser()->getId();
+        }
+
+        return $request->getSession()->get('idUser');
     }
 }

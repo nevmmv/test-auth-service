@@ -47,7 +47,10 @@ class TrackActionHandler implements MessageHandlerInterface
     public function __invoke(TrackActionCommand $command)
     {
         echo sprintf("Track#%s#%s" . PHP_EOL, $command->getId(), $command->getName());
-        $this->storage->store($this->dir . '/' . $command->getId() . '.json', $this->serializer->serialize($command, 'json', ['groups' => ['track']]));
+
+        $serializedData = $this->serializer->serialize($command, 'json', ['groups' => ['track']]);
+
+        $this->storage->store($this->dir . '/' . $command->getId() . '.json', $serializedData);
     }
 
 }
